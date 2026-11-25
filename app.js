@@ -1,11 +1,16 @@
 // ==========================================
-// ESTADO GLOBAL DEL JUEGO
+// AVATARES DISPONIBLES Y ESTADO GLOBAL
 // ==========================================
+const AVATAR_OPTIONS = [
+  '🎸', '🎧', '🎤', '🎹', '🥁', '🎷', '🎺', '🎻',
+  '🦦', '🦊', '🚀', '🔥', '⚡', '👑', '👾', '🦄'
+];
+
 const state = {
   mode: 'solo', // 'solo' | 'team'
   participants: [
-    { name: 'Jugador 1', members: [''] },
-    { name: 'Jugador 2', members: [''] }
+    { name: 'Jugador 1', avatar: '🎸', members: [''], score: 0 },
+    { name: 'Jugador 2', avatar: '🎧', members: [''], score: 0 }
   ],
   tracks: Array.from({ length: 10 }, (_, i) => ({
     id: i + 1,
@@ -25,7 +30,7 @@ const state = {
   timerInterval: null
 };
 
-// Reproductor único y Web Audio API (para modo demo y efectos)
+// Reproductor único y Web Audio API
 const audioPlayer = new Audio();
 let clipTimeout = null;
 let audioCtx = null;
@@ -38,7 +43,71 @@ function getAudioContext() {
 }
 
 // ==========================================
-// REFERENCIAS DOM
+// SISTEMA DE CONFETI VISUAL (CANVAS)
+// ==========================================
+const confettiCanvas = document.getElementById('confetti-canvas');
+const confettiCtx = confettiCanvas.getContext('2d');
+let confettiParticles = [];
+let confettiAnimId = null;
+
+function resizeConfettiCanvas() {
+  confettiCanvas.width = window.innerWidth;
+  confettiCanvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeConfettiCanvas);
+resizeConfettiCanvas();
+
+function launchConfetti(count = 75) {
+  const colors = ['#fbbf24', '#10b981', '#6366f1', '#f43f5e', '#38bdf8', '#a855f7'];
+  for (let i = 0; i < count; i++) {
+    confettiParticles.push({
+      x: Math.random() * confettiCanvas.width,
+      y: Math.random() * confettiCanvas.height * 0.35 - 40,
+      w: Math.random() * 9 + 5,
+      h: Math.random() * 5 + 4,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      vx: (Math.random() - 0.5) * 6,
+      vy: Math.random() * 4 + 2.5,
+      angle: Math.random() * 360,
+      spin: (Math.random() - 0.5) * 10,
+      life: 120 + Math.random() * 40
+    });
+  }
+  if (!confettiAnimId) {
+    animateConfetti();
+  }
+}
+
+function animateConfetti() {
+  confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+  confettiParticles.forEach(p => {
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.08;
+    p.angle += p.spin;
+    p.life--;
+
+    confettiCtx.save();
+    confettiCtx.translate(p.x, p.y);
+    confettiCtx.rotate((p.angle * Math.PI) / 180);
+    confettiCtx.fillStyle = p.color;
+    confettiCtx.globalAlpha = Math.max(0, Math.min(1, p.life / 30));
+    confettiCtx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+    confettiCtx.restore();
+  });
+
+  confettiParticles = confettiParticles.filter(p => p.life > 0 && p.y < confettiCanvas.height + 20);
+
+  if (confettiParticles.length > 0) {
+    confettiAnimId = requestAnimationFrame(animateConfetti);
+  } else {
+    confettiAnimId = null;
+    confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+  }
+}
+
+// ==========================================
+// REFERENCIAS DOM Y NAVEGACIÓN
 // ==========================================
 const screens = {
   setup: document.getElementById('screen-setup'),
@@ -53,7 +122,7 @@ function showScreen(name) {
 }
 
 // ==========================================
-// PANTALLA 1: CONFIGURACIÓN DE PARTICIPANTES
+// PANTALLA 1: CONFIGURACIÓN DE PARTICIPANTES Y AVATARES
 // ==========================================
 const participantsContainer = document.getElementById('participants-container');
 const btnAddParticipant = document.getElementById('btn-add-participant');
@@ -64,16 +133,15 @@ document.querySelectorAll('.mode-btn').forEach(btn => {
     btn.classList.add('active');
     state.mode = btn.dataset.mode;
 
-    // Reiniciar lista base según modalidad
     if (state.mode === 'solo') {
       state.participants = [
-        { name: 'Jugador 1', members: [''] },
-        { name: 'Jugador 2', members: [''] }
+        { name: 'Jugador 1', avatar: '🎸', members: [''], score: 0 },
+        { name: 'Jugador 2', avatar: '🎧', members: [''], score: 0 }
       ];
     } else {
       state.participants = [
-        { name: 'Equipo 1', members: ['Integrante 1', 'Integrante 2'] },
-        { name: 'Equipo 2', members: ['Integrante 1', 'Integrante 2'] }
+        { name: 'Equipo 1', avatar: '🔥', members: ['Integrante 1', 'Integrante 2'], score: 0 },
+        { name: 'Equipo 2', avatar: '⚡', members: ['Integrante 1', 'Integrante 2'], score: 0 }
       ];
     }
     renderParticipants();
@@ -86,41 +154,53 @@ function renderParticipants() {
     const div = document.createElement('div');
     div.className = 'participant-item';
 
-    const label = state.mode === 'solo' ? `Participante ${idx + 1}` : `Equipo ${idx + 1}`;
+    const label = state.mode === 'solo'
+      ? `${p.avatar} Participante ${idx + 1}`
+      : `${p.avatar} Equipo ${idx + 1}`;
+
     const removeBtn = state.participants.length > 1
       ? `<button type="button" class="btn danger-text" onclick="removeParticipant(${idx})">✕ Quitar</button>`
       : '';
 
-    if (state.mode === 'solo') {
-      div.innerHTML = `
-        <div class="participant-header">
-          <span>${label}</span>
-          ${removeBtn}
-        </div>
-        <input type="text" value="${p.name}" placeholder="Nombre del jugador"
-               oninput="updateParticipantName(${idx}, this.value)" />
-      `;
-    } else {
-      div.innerHTML = `
-        <div class="participant-header">
-          <span>${label}</span>
-          ${removeBtn}
-        </div>
-        <div class="inputs-grid">
-          <input type="text" value="${p.name}" placeholder="Nombre del equipo"
-                 oninput="updateParticipantName(${idx}, this.value)" />
-          <input type="text" value="${p.members[0]}" placeholder="Integrante 1"
-                 oninput="updateMemberName(${idx}, 0, this.value)" />
-          <input type="text" value="${p.members[1]}" placeholder="Integrante 2"
-                 oninput="updateMemberName(${idx}, 1, this.value)" />
-        </div>
-      `;
-    }
+    const avatarsHtml = AVATAR_OPTIONS.map(av => `
+      <button type="button"
+              class="avatar-option ${p.avatar === av ? 'selected' : ''}"
+              onclick="selectAvatar(${idx}, '${av}')">${av}</button>
+    `).join('');
+
+    const inputsHtml = state.mode === 'solo'
+      ? `<input type="text" value="${p.name}" placeholder="Nombre del jugador"
+                oninput="updateParticipantName(${idx}, this.value)" />`
+      : `<div class="inputs-grid">
+           <input type="text" value="${p.name}" placeholder="Nombre del equipo"
+                  oninput="updateParticipantName(${idx}, this.value)" />
+           <input type="text" value="${p.members[0]}" placeholder="Integrante 1"
+                  oninput="updateMemberName(${idx}, 0, this.value)" />
+           <input type="text" value="${p.members[1]}" placeholder="Integrante 2"
+                  oninput="updateMemberName(${idx}, 1, this.value)" />
+         </div>`;
+
+    div.innerHTML = `
+      <div class="participant-header">
+        <span id="p-label-${idx}">${label}</span>
+        ${removeBtn}
+      </div>
+      <div class="avatar-picker">
+        <span class="avatar-picker-label">Elige avatar:</span>
+        ${avatarsHtml}
+      </div>
+      ${inputsHtml}
+    `;
     participantsContainer.appendChild(div);
   });
 
   btnAddParticipant.style.display = state.participants.length >= 4 ? 'none' : 'inline-flex';
 }
+
+window.selectAvatar = (idx, avatar) => {
+  state.participants[idx].avatar = avatar;
+  renderParticipants();
+};
 
 window.updateParticipantName = (idx, val) => {
   state.participants[idx].name = val;
@@ -138,19 +218,22 @@ window.removeParticipant = (idx) => {
 btnAddParticipant.addEventListener('click', () => {
   if (state.participants.length >= 4) return;
   const num = state.participants.length + 1;
+  const defaultAvatar = AVATAR_OPTIONS[(num + 1) % AVATAR_OPTIONS.length];
+
   if (state.mode === 'solo') {
-    state.participants.push({ name: `Jugador ${num}`, members: [''] });
+    state.participants.push({ name: `Jugador ${num}`, avatar: defaultAvatar, members: [''], score: 0 });
   } else {
     state.participants.push({
       name: `Equipo ${num}`,
-      members: ['Integrante 1', 'Integrante 2']
+      avatar: defaultAvatar,
+      members: ['Integrante 1', 'Integrante 2'],
+      score: 0
     });
   }
   renderParticipants();
 });
 
 document.getElementById('btn-to-music').addEventListener('click', () => {
-  // Limpiar nombres vacíos con valores por defecto
   state.participants.forEach((p, i) => {
     if (!p.name.trim()) {
       p.name = state.mode === 'solo' ? `Jugador ${i + 1}` : `Equipo ${i + 1}`;
@@ -236,7 +319,6 @@ document.getElementById('bulk-audio-input').addEventListener('change', (e) => {
   renderTracksAdmin();
 });
 
-// Melodías sintetizadas para probar el juego sin tener MP3 a mano
 const DEMO_MELODIES = [
   { title: 'Demo 1 - Escala Ascendente', notes: [261.6, 293.7, 329.6, 349.2, 392.0] },
   { title: 'Demo 2 - Arpegio Mayor', notes: [261.6, 329.6, 392.0, 523.3, 392.0] },
@@ -338,39 +420,47 @@ function shuffleArray(array) {
 
 function playFeedbackSound(isMatch) {
   const ctx = getAudioContext();
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-  osc.type = 'sine';
   const now = ctx.currentTime;
 
   if (isMatch) {
-    osc.frequency.setValueAtTime(523.25, now);
-    osc.frequency.setValueAtTime(659.25, now + 0.12);
-    osc.frequency.setValueAtTime(783.99, now + 0.24);
+    // Acorde fanfarria brillante al acertar
+    const notes = [523.25, 659.25, 783.99, 1046.5];
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, now + i * 0.08);
+      gain.gain.setValueAtTime(0.18, now + i * 0.08);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.45);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now + i * 0.08);
+      osc.stop(now + i * 0.08 + 0.45);
+    });
   } else {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
     osc.frequency.setValueAtTime(220, now);
     osc.frequency.setValueAtTime(185, now + 0.15);
+    gain.gain.setValueAtTime(0.15, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.4);
   }
-
-  gain.gain.setValueAtTime(0.15, now);
-  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
-  osc.connect(gain);
-  gain.connect(ctx.destination);
-  osc.start(now);
-  osc.stop(now + 0.4);
 }
 
 function initGame() {
-  // Reiniciar puntajes y contadores
   state.participants.forEach(p => { p.score = 0; });
-  state.currentTurnIndex = Math.floor(Math.random() * state.participants.length); // Sorteo inicial
+  state.currentTurnIndex = Math.floor(Math.random() * state.participants.length);
   state.pairsFound = 0;
   state.attempts = 0;
   state.secondsElapsed = 0;
   state.flippedCards = [];
   state.lockBoard = false;
 
-  // Duplicar 10 pistas -> 20 cartas y barajar
   const deck = [];
   state.tracks.forEach(track => {
     deck.push({ trackId: track.id, track, matched: false });
@@ -400,25 +490,30 @@ function formatTime(totalSec) {
 }
 
 function updateTopStats() {
+  const activePlayer = state.participants[state.currentTurnIndex];
   document.getElementById('pairs-found').textContent = `${state.pairsFound} / 10`;
   document.getElementById('attempts-count').textContent = state.attempts;
   document.getElementById('game-timer').textContent = formatTime(state.secondsElapsed);
-  document.getElementById('current-turn-name').textContent = state.participants[state.currentTurnIndex].name;
+  document.getElementById('current-turn-name').textContent = `${activePlayer.avatar} ${activePlayer.name}`;
 }
 
-function renderScoreboard() {
+function renderScoreboard(bumpIndex = -1) {
   const scoreboard = document.getElementById('scoreboard');
   scoreboard.innerHTML = '';
 
   state.participants.forEach((p, idx) => {
     const isTurn = idx === state.currentTurnIndex;
+    const isBump = idx === bumpIndex;
     const subtext = state.mode === 'team' ? `${p.members[0]} y ${p.members[1]}` : 'Individual';
     const card = document.createElement('div');
-    card.className = `score-card ${isTurn ? 'active-turn' : ''}`;
+    card.className = `score-card ${isTurn ? 'active-turn' : ''} ${isBump ? 'score-bump' : ''}`;
     card.innerHTML = `
-      <div class="score-info">
-        <h4>${p.name}</h4>
-        <small>${subtext}</small>
+      <div class="score-left">
+        <span class="score-avatar">${p.avatar}</span>
+        <div class="score-info">
+          <h4>${p.name}</h4>
+          <small>${subtext}</small>
+        </div>
       </div>
       <div class="score-points">${p.score}</div>
     `;
@@ -450,7 +545,6 @@ function handleCardClick(index, cardElement) {
   const cardData = state.cards[index];
   if (cardData.matched) return;
 
-  // Si hace clic en la misma carta ya abierta en este turno, solo vuelve a reproducir su audio
   if (state.flippedCards.length === 1 && state.flippedCards[0].index === index) {
     cardElement.classList.add('playing');
     playTrackSnippet(cardData.track, state.clipDuration, () => {
@@ -459,7 +553,6 @@ function handleCardClick(index, cardElement) {
     return;
   }
 
-  // Marcar carta seleccionada y reproducir extracto
   cardElement.classList.add('selected', 'playing');
   cardElement.querySelector('.card-icon').textContent = '🔊';
   cardElement.querySelector('.card-label').textContent = 'Sonando...';
@@ -486,34 +579,35 @@ function checkForMatch() {
   const [first, second] = state.flippedCards;
   const isMatch = first.data.trackId === second.data.trackId;
 
-  // Dar 1.5s para escuchar el inicio de la segunda carta antes de resolver
   setTimeout(() => {
     stopCurrentAudio();
 
     if (isMatch) {
       playFeedbackSound(true);
+      launchConfetti(65); // Explosión de confeti al acertar
+
       first.data.matched = true;
       second.data.matched = true;
 
       [first.element, second.element].forEach(el => {
         el.classList.remove('selected', 'playing');
-        el.classList.add('matched');
+        el.classList.add('matched', 'match-celebrate');
         el.disabled = true;
-        el.querySelector('.card-icon').textContent = '✅';
+        el.querySelector('.card-icon').textContent = '🌟';
         el.querySelector('.card-label').textContent = first.data.track.title;
       });
 
-      // Sumar punto y CONSERVAR turno
-      state.participants[state.currentTurnIndex].score++;
+      const scorerIndex = state.currentTurnIndex;
+      state.participants[scorerIndex].score++;
       state.pairsFound++;
       state.flippedCards = [];
       state.lockBoard = false;
 
       updateTopStats();
-      renderScoreboard();
+      renderScoreboard(scorerIndex);
 
       if (state.pairsFound === 10) {
-        finishGame();
+        setTimeout(() => finishGame(), 700);
       }
     } else {
       playFeedbackSound(false);
@@ -523,7 +617,6 @@ function checkForMatch() {
         el.querySelector('.card-label').textContent = 'Escuchar';
       });
 
-      // Pasar turno al siguiente participante
       state.currentTurnIndex = (state.currentTurnIndex + 1) % state.participants.length;
       state.flippedCards = [];
       state.lockBoard = false;
@@ -543,11 +636,12 @@ document.getElementById('btn-abort-game').addEventListener('click', () => {
 });
 
 // ==========================================
-// PANTALLA 4: RESULTADOS Y REVANCHA
+// PANTALLA 4: PODIO Y RESULTADOS FINALES
 // ==========================================
 function finishGame() {
   clearInterval(state.timerInterval);
   stopCurrentAudio();
+  launchConfetti(180); // Lluvia grande de confeti final
 
   const sorted = [...state.participants].sort((a, b) => b.score - a.score);
   const topScore = sorted[0].score;
@@ -555,14 +649,42 @@ function finishGame() {
 
   const winnerSubtitle = document.getElementById('winner-subtitle');
   if (winners.length > 1) {
-    winnerSubtitle.textContent = `🤝 ¡Empate entre ${winners.map(w => w.name).join(' y ')} con ${topScore} parejas!`;
+    winnerSubtitle.textContent = `🤝 ¡Empate en la cima entre ${winners.map(w => `${w.avatar} ${w.name}`).join(' y ')} con ${topScore} parejas!`;
   } else {
-    winnerSubtitle.textContent = `🎉 ¡Ganador: ${winners[0].name} con ${topScore} parejas!`;
+    winnerSubtitle.textContent = `🎉 ¡Campeón: ${winners[0].avatar} ${winners[0].name} con ${topScore} parejas!`;
   }
+
+  // Renderizar Podio Visual (Orden olímpico: 2° izquierda, 1° centro, 3° derecha)
+  const podiumContainer = document.getElementById('podium-container');
+  podiumContainer.innerHTML = '';
+
+  const podiumOrder = [];
+  if (sorted[1]) podiumOrder.push({ player: sorted[1], place: 2, medal: '🥈' });
+  if (sorted[0]) podiumOrder.push({ player: sorted[0], place: 1, medal: '🥇' });
+  if (sorted[2]) podiumOrder.push({ player: sorted[2], place: 3, medal: '🥉' });
+
+  podiumOrder.forEach(({ player, place, medal }) => {
+    const membersLine = state.mode === 'team' ? `${player.members[0]} y ${player.members[1]}` : '';
+    const crownHtml = place === 1 ? '<div class="podium-crown">👑</div>' : '';
+    const slot = document.createElement('div');
+    slot.className = `podium-slot place-${place}`;
+    slot.innerHTML = `
+      ${crownHtml}
+      <div class="podium-avatar">${player.avatar}</div>
+      <div class="podium-name">${player.name}</div>
+      <div class="podium-members">${membersLine}</div>
+      <div class="podium-step">
+        <span class="podium-medal">${medal}</span>
+        <span class="podium-pts">${player.score} pts</span>
+      </div>
+    `;
+    podiumContainer.appendChild(slot);
+  });
 
   document.getElementById('final-time').textContent = formatTime(state.secondsElapsed);
   document.getElementById('final-attempts').textContent = state.attempts;
 
+  // Tabla completa (útil especialmente si hay 4 participantes)
   const rankingList = document.getElementById('ranking-list');
   rankingList.innerHTML = '';
   sorted.forEach((p, idx) => {
@@ -570,7 +692,7 @@ function finishGame() {
     item.className = `ranking-item ${idx === 0 ? 'first' : ''}`;
     const membersText = state.mode === 'team' ? ` (${p.members[0]} y ${p.members[1]})` : '';
     item.innerHTML = `
-      <span><strong>#${idx + 1} ${p.name}</strong>${membersText}</span>
+      <span><strong>#${idx + 1} ${p.avatar} ${p.name}</strong>${membersText}</span>
       <strong>${p.score} pts</strong>
     `;
     rankingList.appendChild(item);
