@@ -376,12 +376,16 @@ input:focus {
 /* Tablero 5x4 */
 .game-board {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
+  width: 100%;
 }
 
 .memory-card {
   aspect-ratio: 1 / 1;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
   background: var(--surface);
   border: 2px solid var(--surface-light);
   border-radius: var(--radius);
@@ -481,7 +485,7 @@ input:focus {
 
 @media (max-width: 640px) {
   .game-board {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 8px;
   }
   .track-row {
