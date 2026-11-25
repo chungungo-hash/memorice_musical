@@ -1,4 +1,35 @@
 // ==========================================
+// GENERAR DESTELLOS DE PISTA DE DISCOTECA
+// ==========================================
+function initDiscoSparkles() {
+  const container = document.getElementById('disco-sparkles');
+  if (!container) return;
+  const colors = ['#ffffff', '#ec4899', '#06b6d4', '#fbbf24', '#c084fc'];
+  for (let i = 0; i < 42; i++) {
+    const dot = document.createElement('span');
+    dot.className = 'sparkle-dot';
+    const size = Math.random() * 4 + 2;
+    dot.style.width = `${size}px`;
+    dot.style.height = `${size}px`;
+    dot.style.left = `${Math.random() * 100}%`;
+    dot.style.top = `${Math.random() * 100}%`;
+    dot.style.backgroundColor = colors[i % colors.length];
+    dot.style.boxShadow = `0 0 8px ${colors[i % colors.length]}`;
+    dot.style.setProperty('--dur', `${(Math.random() * 2.5 + 1.5).toFixed(2)}s`);
+    dot.style.setProperty('--delay', `${(Math.random() * 3).toFixed(2)}s`);
+    container.appendChild(dot);
+  }
+}
+initDiscoSparkles();
+
+function triggerDiscoPartyBoost(durationMs = 2200) {
+  const bg = document.getElementById('disco-bg');
+  if (!bg) return;
+  bg.classList.add('party-boost');
+  setTimeout(() => bg.classList.remove('party-boost'), durationMs);
+}
+
+// ==========================================
 // AVATARES DISPONIBLES Y ESTADO GLOBAL
 // ==========================================
 const AVATAR_OPTIONS = [
@@ -58,7 +89,7 @@ window.addEventListener('resize', resizeConfettiCanvas);
 resizeConfettiCanvas();
 
 function launchConfetti(count = 75) {
-  const colors = ['#fbbf24', '#10b981', '#6366f1', '#f43f5e', '#38bdf8', '#a855f7'];
+  const colors = ['#fbbf24', '#ec4899', '#06b6d4', '#10b981', '#a855f7', '#ffffff'];
   for (let i = 0; i < count; i++) {
     confettiParticles.push({
       x: Math.random() * confettiCanvas.width,
@@ -423,7 +454,6 @@ function playFeedbackSound(isMatch) {
   const now = ctx.currentTime;
 
   if (isMatch) {
-    // Acorde fanfarria brillante al acertar
     const notes = [523.25, 659.25, 783.99, 1046.5];
     notes.forEach((freq, i) => {
       const osc = ctx.createOscillator();
@@ -584,7 +614,8 @@ function checkForMatch() {
 
     if (isMatch) {
       playFeedbackSound(true);
-      launchConfetti(65); // Explosión de confeti al acertar
+      launchConfetti(65);
+      triggerDiscoPartyBoost(2000); // Acelera la esfera y luces de discoteca
 
       first.data.matched = true;
       second.data.matched = true;
@@ -641,7 +672,8 @@ document.getElementById('btn-abort-game').addEventListener('click', () => {
 function finishGame() {
   clearInterval(state.timerInterval);
   stopCurrentAudio();
-  launchConfetti(180); // Lluvia grande de confeti final
+  launchConfetti(180);
+  triggerDiscoPartyBoost(4500);
 
   const sorted = [...state.participants].sort((a, b) => b.score - a.score);
   const topScore = sorted[0].score;
@@ -654,7 +686,6 @@ function finishGame() {
     winnerSubtitle.textContent = `🎉 ¡Campeón: ${winners[0].avatar} ${winners[0].name} con ${topScore} parejas!`;
   }
 
-  // Renderizar Podio Visual (Orden olímpico: 2° izquierda, 1° centro, 3° derecha)
   const podiumContainer = document.getElementById('podium-container');
   podiumContainer.innerHTML = '';
 
@@ -684,7 +715,6 @@ function finishGame() {
   document.getElementById('final-time').textContent = formatTime(state.secondsElapsed);
   document.getElementById('final-attempts').textContent = state.attempts;
 
-  // Tabla completa (útil especialmente si hay 4 participantes)
   const rankingList = document.getElementById('ranking-list');
   rankingList.innerHTML = '';
   sorted.forEach((p, idx) => {
