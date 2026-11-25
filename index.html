@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Memorice Musical</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <h1>🎵 Memorice Musical</h1>
+      <p class="subtitle">Encuentra las 10 parejas escuchando los extractos</p>
+    </header>
+
+    <!-- PANTALLA 1: CONFIGURACIÓN DE PARTICIPANTES -->
+    <section id="screen-setup" class="screen active">
+      <div class="card">
+        <h2>1. Modalidad y Participantes</h2>
+        
+        <div class="mode-selector">
+          <button type="button" id="btn-mode-solo" class="mode-btn active" data-mode="solo">
+            👤 Individual (1 a 4)
+          </button>
+          <button type="button" id="btn-mode-team" class="mode-btn" data-mode="team">
+            👥 Por Equipos (1 a 4 parejas)
+          </button>
+        </div>
+
+        <div id="participants-container" class="participants-list"></div>
+
+        <div class="actions-row">
+          <button type="button" id="btn-add-participant" class="btn secondary">
+            + Agregar participante
+          </button>
+          <button type="button" id="btn-to-music" class="btn primary">
+            Siguiente: Cargar Música →
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- PANTALLA 2: PANEL DE ADMINISTRACIÓN DE MÚSICA -->
+    <section id="screen-music" class="screen">
+      <div class="card">
+        <div class="music-header">
+          <div>
+            <h2>2. Selección de 10 Canciones</h2>
+            <p class="hint">Sube 10 archivos MP3 y define el segundo exacto donde empieza el extracto, o usa la demo.</p>
+          </div>
+          <div class="music-quick-actions">
+            <label class="btn secondary file-upload-label">
+              📂 Cargar MP3s (hasta 10)
+              <input type="file" id="bulk-audio-input" accept="audio/*" multiple hidden />
+            </label>
+            <button type="button" id="btn-load-demo" class="btn accent">
+              🎹 Usar 10 Melodías Demo
+            </button>
+          </div>
+        </div>
+
+        <div class="global-duration-bar">
+          <label for="clip-duration">Duración de cada extracto (segundos):</label>
+          <input type="number" id="clip-duration" min="2" max="30" value="6" />
+        </div>
+
+        <div id="tracks-list" class="tracks-grid"></div>
+
+        <p id="music-error" class="error-msg"></p>
+
+        <div class="actions-row">
+          <button type="button" id="btn-back-setup" class="btn secondary">
+            ← Volver
+          </button>
+          <button type="button" id="btn-start-game" class="btn primary">
+            🎲 Sortear Turno y Jugar
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- PANTALLA 3: TABLERO DE JUEGO -->
+    <section id="screen-game" class="screen">
+      <div class="game-top-bar">
+        <div class="stat-pill">Parejas: <strong id="pairs-found">0 / 10</strong></div>
+        <div class="stat-pill">Intentos: <strong id="attempts-count">0</strong></div>
+        <div class="stat-pill">Tiempo: <strong id="game-timer">00:00</strong></div>
+        <button type="button" id="btn-stop-audio" class="btn small secondary">⏹ Silenciar</button>
+      </div>
+
+      <div id="turn-banner" class="turn-banner">
+        Turno de: <strong id="current-turn-name">-</strong>
+      </div>
+
+      <div id="scoreboard" class="scoreboard"></div>
+
+      <div id="board" class="game-board"></div>
+
+      <div class="actions-row center">
+        <button type="button" id="btn-abort-game" class="btn secondary small">
+          Salir al menú
+        </button>
+      </div>
+    </section>
+
+    <!-- PANTALLA 4: RESULTADOS -->
+    <section id="screen-results" class="screen">
+      <div class="card results-card">
+        <h2 id="winner-title">🏆 ¡Partida Finalizada!</h2>
+        <p id="winner-subtitle" class="winner-banner"></p>
+
+        <div class="final-stats">
+          <span>Tiempo total: <strong id="final-time">00:00</strong></span>
+          <span>Intentos totales: <strong id="final-attempts">0</strong></span>
+        </div>
+
+        <div id="ranking-list" class="ranking-list"></div>
+
+        <div class="actions-row center">
+          <button type="button" id="btn-rematch" class="btn primary">
+            🔄 Revancha (Mismos equipos y música)
+          </button>
+          <button type="button" id="btn-new-setup" class="btn secondary">
+            ⚙️ Nueva Configuración
+          </button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>
