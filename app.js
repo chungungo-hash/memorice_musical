@@ -65,10 +65,14 @@ const state = {
 const audioPlayer = new Audio();
 let clipTimeout = null;
 let audioCtx = null;
+let activeDemoNodes = [];
 
 function getAudioContext() {
   if (!audioCtx) {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
   }
   return audioCtx;
 }
@@ -350,17 +354,97 @@ document.getElementById('bulk-audio-input').addEventListener('change', (e) => {
   renderTracksAdmin();
 });
 
+// ==========================================
+// 10 MELODÍAS FAMOSAS SINTETIZADAS (CON RITMO REAL)
+// ==========================================
+const N = {
+  E2: 82.41, G2: 98.00, A2: 110.00, B2: 123.47,
+  C3: 130.81, D3: 146.83, E3: 164.81, F3: 174.61, G3: 196.00, A3: 220.00, Bb3: 233.08, B3: 246.94,
+  C4: 261.63, Db4: 277.18, D4: 293.66, Eb4: 311.13, E4: 329.63, F4: 349.23, Gb4: 369.99, G4: 392.00, Ab4: 415.30, A4: 440.00, Bb4: 466.16, B4: 493.88,
+  C5: 523.25, Db5: 554.37, D5: 587.33, Eb5: 622.25, E5: 659.25, F5: 698.46, Gb5: 739.99, G5: 783.99, A5: 880.00
+};
+
 const DEMO_MELODIES = [
-  { title: 'Demo 1 - Escala Ascendente', notes: [261.6, 293.7, 329.6, 349.2, 392.0] },
-  { title: 'Demo 2 - Arpegio Mayor', notes: [261.6, 329.6, 392.0, 523.3, 392.0] },
-  { title: 'Demo 3 - Suspenso', notes: [220.0, 233.1, 220.0, 246.9, 220.0] },
-  { title: 'Demo 4 - Fanfarria', notes: [392.0, 392.0, 523.3, 659.3, 784.0] },
-  { title: 'Demo 5 - Nostalgia', notes: [440.0, 392.0, 349.2, 329.6, 293.7] },
-  { title: 'Demo 6 - Salto Octava', notes: [261.6, 523.3, 293.7, 587.3, 329.6] },
-  { title: 'Demo 7 - Blues Riff', notes: [220.0, 261.6, 293.7, 311.1, 329.6] },
-  { title: 'Demo 8 - Campanas', notes: [659.3, 523.3, 587.3, 392.0, 523.3] },
-  { title: 'Demo 9 - Bajo Profundo', notes: [130.8, 164.8, 196.0, 164.8, 130.8] },
-  { title: 'Demo 10 - Galaxia', notes: [523.3, 659.3, 784.0, 1046.5, 784.0] }
+  {
+    title: 'Super Mario Bros',
+    wave: 'square',
+    notes: [
+      [N.E5, 0.14], [N.E5, 0.28], [N.E5, 0.28], [N.C5, 0.14], [N.E5, 0.28], [N.G5, 0.52], [N.G4, 0.52]
+    ]
+  },
+  {
+    title: 'Star Wars - Marcha Imperial',
+    wave: 'sawtooth',
+    notes: [
+      [N.A3, 0.45], [N.A3, 0.45], [N.A3, 0.45], [N.F3, 0.34], [N.C4, 0.14],
+      [N.A3, 0.45], [N.F3, 0.34], [N.C4, 0.14], [N.A3, 0.75]
+    ]
+  },
+  {
+    title: 'Tetris (Korobeiniki)',
+    wave: 'square',
+    notes: [
+      [N.E5, 0.34], [N.B4, 0.17], [N.C5, 0.17], [N.D5, 0.34], [N.C5, 0.17], [N.B4, 0.17],
+      [N.A4, 0.34], [N.A4, 0.17], [N.C5, 0.17], [N.E5, 0.34], [N.D5, 0.17], [N.C5, 0.17], [N.B4, 0.5]
+    ]
+  },
+  {
+    title: 'Seven Nation Army',
+    wave: 'sawtooth',
+    notes: [
+      [N.E3, 0.55], [N.E3, 0.22], [N.G3, 0.32], [N.E3, 0.32], [N.D3, 0.32], [N.C3, 0.85], [N.B2, 0.75]
+    ]
+  },
+  {
+    title: 'Smoke on the Water',
+    wave: 'sawtooth',
+    notes: [
+      [N.G3, 0.38], [N.Bb3, 0.38], [N.C4, 0.62],
+      [N.G3, 0.38], [N.Bb3, 0.38], [N.Db4, 0.22], [N.C4, 0.65],
+      [N.G3, 0.38], [N.Bb3, 0.38], [N.C4, 0.55], [N.Bb3, 0.35], [N.G3, 0.65]
+    ]
+  },
+  {
+    title: 'Himno de la Alegría',
+    wave: 'triangle',
+    notes: [
+      [N.E4, 0.32], [N.E4, 0.32], [N.F4, 0.32], [N.G4, 0.32],
+      [N.G4, 0.32], [N.F4, 0.32], [N.E4, 0.32], [N.D4, 0.32],
+      [N.C4, 0.32], [N.C4, 0.32], [N.D4, 0.32], [N.E4, 0.32], [N.E4, 0.48], [N.D4, 0.22], [N.D4, 0.5]
+    ]
+  },
+  {
+    title: 'Para Elisa (Beethoven)',
+    wave: 'triangle',
+    notes: [
+      [N.E5, 0.22], [N.Eb5, 0.22], [N.E5, 0.22], [N.Eb5, 0.22], [N.E5, 0.22],
+      [N.B4, 0.22], [N.D5, 0.22], [N.C5, 0.22], [N.A4, 0.55]
+    ]
+  },
+  {
+    title: 'Harry Potter (Hedwig)',
+    wave: 'triangle',
+    notes: [
+      [N.B4, 0.30], [N.E5, 0.45], [N.G5, 0.20], [N.Gb5, 0.32], [N.E5, 0.60],
+      [N.B5, 0.32], [N.A5, 0.75], [N.Gb5, 0.75]
+    ]
+  },
+  {
+    title: 'Misión Imposible',
+    wave: 'sawtooth',
+    notes: [
+      [N.G3, 0.28], [0, 0.08], [N.G3, 0.28], [0, 0.08], [N.Bb3, 0.24], [N.C4, 0.24],
+      [N.G3, 0.28], [0, 0.08], [N.G3, 0.28], [0, 0.08], [N.F3, 0.24], [N.Gb3, 0.24], [N.G3, 0.45]
+    ]
+  },
+  {
+    title: 'Cumpleaños Feliz',
+    wave: 'triangle',
+    notes: [
+      [N.C4, 0.24], [N.C4, 0.14], [N.D4, 0.38], [N.C4, 0.38], [N.F4, 0.38], [N.E4, 0.70],
+      [N.C4, 0.24], [N.C4, 0.14], [N.D4, 0.38], [N.C4, 0.38], [N.G4, 0.38], [N.F4, 0.70]
+    ]
+  }
 ];
 
 document.getElementById('btn-load-demo').addEventListener('click', () => {
@@ -370,6 +454,7 @@ document.getElementById('btn-load-demo').addEventListener('click', () => {
     url: null,
     startSec: 0,
     isDemo: true,
+    wave: m.wave,
     notes: m.notes
   }));
   musicError.textContent = '';
@@ -381,22 +466,32 @@ function playTrackSnippet(track, durationSec, onEndedCallback) {
 
   if (track.isDemo) {
     const ctx = getAudioContext();
-    const now = ctx.currentTime;
-    track.notes.forEach((freq, idx) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(freq, now + idx * 0.35);
-      gain.gain.setValueAtTime(0.18, now + idx * 0.35);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + (idx + 1) * 0.35);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(now + idx * 0.35);
-      osc.stop(now + (idx + 1) * 0.35);
+    let cursor = ctx.currentTime + 0.02;
+
+    track.notes.forEach(([freq, dur]) => {
+      if (freq > 0) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = track.wave || 'triangle';
+        osc.frequency.setValueAtTime(freq, cursor);
+
+        const vol = track.wave === 'triangle' ? 0.24 : 0.12;
+        gain.gain.setValueAtTime(vol, cursor);
+        gain.gain.exponentialRampToValueAtTime(0.001, cursor + dur * 0.92);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(cursor);
+        osc.stop(cursor + dur);
+        activeDemoNodes.push(osc);
+      }
+      cursor += dur;
     });
+
+    const totalMs = Math.max(1200, (cursor - ctx.currentTime) * 1000);
     clipTimeout = setTimeout(() => {
       if (onEndedCallback) onEndedCallback();
-    }, 1800);
+    }, totalMs);
     return;
   }
 
@@ -413,6 +508,10 @@ function playTrackSnippet(track, durationSec, onEndedCallback) {
 function stopCurrentAudio() {
   clearTimeout(clipTimeout);
   audioPlayer.pause();
+  activeDemoNodes.forEach(osc => {
+    try { osc.stop(); } catch (_) {}
+  });
+  activeDemoNodes = [];
   document.querySelectorAll('.memory-card.playing').forEach(c => c.classList.remove('playing'));
 }
 
@@ -615,7 +714,7 @@ function checkForMatch() {
     if (isMatch) {
       playFeedbackSound(true);
       launchConfetti(65);
-      triggerDiscoPartyBoost(2000); // Acelera la esfera y luces de discoteca
+      triggerDiscoPartyBoost(2000);
 
       first.data.matched = true;
       second.data.matched = true;
@@ -655,7 +754,7 @@ function checkForMatch() {
       updateTopStats();
       renderScoreboard();
     }
-  }, 1600);
+  }, 1900);
 }
 
 document.getElementById('btn-stop-audio').addEventListener('click', stopCurrentAudio);
