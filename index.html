@@ -7,6 +7,8 @@
   <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
+  <canvas id="confetti-canvas"></canvas>
+
   <div class="app-container">
     <header class="app-header">
       <h1>🎵 Memorice Musical</h1>
@@ -16,7 +18,7 @@
     <!-- PANTALLA 1: CONFIGURACIÓN DE PARTICIPANTES -->
     <section id="screen-setup" class="screen active">
       <div class="card">
-        <h2>1. Modalidad y Participantes</h2>
+        <h2>1. Modalidad, Avatares y Participantes</h2>
         
         <div class="mode-selector">
           <button type="button" id="btn-mode-solo" class="mode-btn active" data-mode="solo">
@@ -103,11 +105,13 @@
       </div>
     </section>
 
-    <!-- PANTALLA 4: RESULTADOS -->
+    <!-- PANTALLA 4: RESULTADOS Y PODIO -->
     <section id="screen-results" class="screen">
       <div class="card results-card">
-        <h2 id="winner-title">🏆 ¡Partida Finalizada!</h2>
+        <h2 id="winner-title">🏆 ¡Podio Final!</h2>
         <p id="winner-subtitle" class="winner-banner"></p>
+
+        <div id="podium-container" class="podium-container"></div>
 
         <div class="final-stats">
           <span>Tiempo total: <strong id="final-time">00:00</strong></span>
